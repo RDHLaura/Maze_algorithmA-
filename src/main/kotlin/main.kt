@@ -1,111 +1,103 @@
 import java.io.File
 import java.io.FileNotFoundException
 import java.lang.Math.abs
-import kotlin.math.max
 
-fun main(args: Array<String>) {
-
-    val mapa=leerArchivo("maze.csv")
+fun main (args: Array<String>){
 
     val entrada=findElement(mapa, "A")
+    val nodoEntrada=nodo(null,entrada)
     mapa.forEach { println(it) }
-    encontrarCamino(mapa,entrada)
+
+    encontrarCamino(mapa,nodoEntrada)
+    println("*****************************")
     imprimirCamino(mapa)
 }
 fun imprimirCamino(mapa: MutableList<List<String>>){
     val nuevoMapa=mutableListOf<MutableList<String>>()
         mapa.forEach{nuevoMapa.add(it.toMutableList())}
     camino.forEach {
-        val(a,b)=it
+        val(a,b)=it.posicion
         nuevoMapa[a][b]="X"
     }
     nuevoMapa.forEach { println(it) }
 
 }
- var camino=  mutableListOf<Pair<Int, Int>>()
-//MutableMap<Pair<Int, Int>,
-fun calcularF(mapa:MutableList<List<String>>,actual:Pair<Int, Int>):Pair<Int, Int>?{
+
+//variables estáticas
+var camino= mutableListOf<nodo>()
+var nodos_visitados= mutableListOf<nodo>()
+val mapa=leerArchivo("miniMaze2.csv")
+val salida=findElement(mapa, "B")
+
+
+fun encontrarCamino(mapa:MutableList<List<String>>,actual:nodo ){
+    val nextNode=siguienteNodo(actual)
+    if(nextNode.posicion!=findElement(mapa, "B") ){
+        nodos_visitados.add(nextNode)
+        camino.add(nextNode)
+        encontrarCamino(mapa, nextNode)
+    }else if(nextNode.posicion==findElement(mapa, "B")){
+        nodos_visitados.add(nextNode)
+    }
+}
+fun siguienteNodo(actual: nodo):nodo{
     //crea un mapa con las puntuaciones de las adyacentes
-    val mapAdyacentes= mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
-    val salida=findElement(mapa, "B")
+    //val listAdyacentes= mutableListOf<nodo>()
     val (x,y)=salida
-    val (x1,y1)=actual
-    val listadyacentes= adyacentes(mapa, actual)
+    val (x1,y1)=actual.posicion
+    val listadyacentes= adyacentes2(mapa, actual)
     for (adyacente in listadyacentes){
-        val (x2,y2)=adyacente
+        val (x2,y2)=adyacente.posicion
         val g= abs(x2-x1)+ abs(y2-y1)//calcula la distancia de la adyacente con la posición actual o previa
         val h= abs(x2-x)+ abs(y2-y)//calcula la distancia de la adyacente con la posición final u objetivo
         val f= g+h//suma ambas distancias
+        adyacente.distancia=f
 
-        //almacena la adyacente con su distancia calculada
-        if(f in mapAdyacentes.keys){
-            mapAdyacentes[f]!!.add(adyacente)
-//            val(a, b)= mapAdyacentes[f]!!
-//            //si ya habia alguna adyacente en el map con esa puntuación da prioridad a la adyacente que está abajo o a la dcha
-//            if(x2>a || y2>b){
-//                mapAdyacentes[f]=adyacente
-//            }
-        }else{ mapAdyacentes[f]= mutableListOf(adyacente)}
     }
 
+    val noVisitados=listadyacentes.filter { it !in nodos_visitados }.sortedBy { it.distancia }
     //selecciona del mapa el valor más alto y devuelve la adyacente o null si no hay más adyacentes
-    var elegida= mapAdyacentes[mapAdyacentes.keys.toList().minOrNull()]!!.filter { it !in camino }.randomOrNull()
 
-    if(elegida ==null){
-        elegida= mapAdyacentes[mapAdyacentes.keys.toList().minOrNull()]!!.randomOrNull()
-        return elegida
-    }else {
-        return elegida
-    }
-
-}
-
-fun encontrarCamino(mapa:MutableList<List<String>>,actual:Pair<Int, Int> ){
-    val nextNode=calcularF(mapa, actual)
-    if(nextNode!=null && nextNode!=findElement(mapa, "B") ){
-        camino.add(nextNode)
-        encontrarCamino(mapa, nextNode)
-    }else if(nextNode==findElement(mapa, "B")){
-        camino.add(nextNode)
+    if(noVisitados.isEmpty()){
+        return actual.padre!!
+    }else{
+        val elegido=noVisitados.first()
+        return elegido
     }
 }
-fun adyacentes(mapa:MutableList<List<String>>, actual:Pair<Int, Int>):List<Pair<Int, Int>>{
-    val listAdyacentes= mutableListOf<Pair<Int, Int>?>()
-    listAdyacentes.add(adyacentesArriba(mapa, actual))
-    listAdyacentes.add(adyacentesIzq(mapa, actual))
-    listAdyacentes.add(adyacentesDcha(mapa, actual))
-    listAdyacentes.add(adyacentesAbajo(mapa, actual))
 
-    val posibles= mutableListOf<Pair<Int, Int>>()
-    for (adyacente in listAdyacentes.filter { it!=null }){
-        val (a,b)=adyacente!!
-        if(mapa[a][b]=="0" || mapa[a][b]=="B"){posibles.add(adyacente)}
+fun adyacentes2(mapa:MutableList<List<String>>, actual:nodo):List<nodo>{
+    //lista donde se almacena los nodos adyacentes al actual
+    val listAdyacentes= mutableListOf<Pair<Int, Int>>()
+    val (x,y)=actual.posicion
+    if(x!=0){listAdyacentes.add( Pair(x-1, y))} //adyacente superior
+    if(y>0) {listAdyacentes.add(Pair(x, y-1))}//adyacente izquierda
+    if(y<mapa[0].size) {listAdyacentes.add(Pair(x, y+1))}//adyacente derecha
+    if(x<mapa.size){listAdyacentes.add(Pair(x+1, y))}//adyacente inferior
+    //luego se hace un filtro de esos nodos eligiendo solo los caminos, eliminando las paredes
+    val posibles= mutableListOf<nodo>()
+    for (adyacente in listAdyacentes){
+        val (a,b)=adyacente
+        if(mapa[a][b]=="0" || mapa[a][b]=="B"){
+            //se crea una clase nodo que almacena el padre y la posición del nodo
+            posibles.add(nodo(actual, adyacente))
+        }
     }
-
     return posibles
+}
 
-}
-fun adyacentesArriba(mapa:MutableList<List<String>>, actual:Pair<Int, Int>):Pair<Int, Int>?{
-    val (x,y)=actual
-    return if(x!=0){  Pair(x-1, y) }
-    else null
-}
-fun adyacentesAbajo(mapa:MutableList<List<String>>, actual:Pair<Int, Int>):Pair<Int, Int>?{
-    val (x,y)=actual
-    return if(x<mapa.size){Pair(x+1, y)}
-    else null
 
-}
-fun adyacentesIzq(mapa:MutableList<List<String>>, actual:Pair<Int, Int>):Pair<Int, Int>?{
-    val (x,y)=actual
-    return if(y>0) {Pair(x, y-1)}
-    else null
-}
-fun adyacentesDcha(mapa:MutableList<List<String>>, actual:Pair<Int, Int>):Pair<Int, Int>?{
-    val (x,y)=actual
-    return if(y<mapa[0].size) {Pair(x, y+1)}
-    else null
-
+//encuentra la posición de la entrada y la salida
+fun findElement(matriz:MutableList<List<String>>, element:String):Pair<Int, Int>{
+    var x:Int=0
+    var y:Int=0
+    matriz.forEach{
+        if(it.contains(element)){
+            x=matriz.indexOf(it)
+            y=it.indexOf(element)
+        }
+    }
+    return Pair(x,y)
 }
 
 fun leerArchivo(archivo:String): MutableList<List<String>> {
@@ -120,15 +112,21 @@ fun leerArchivo(archivo:String): MutableList<List<String>> {
     return matriz
 }
 
-//encuentra la posición de la entrada y la salida
-fun findElement(matriz:MutableList<List<String>>, element:String):Pair<Int, Int>{
-    var x:Int=0
-    var y:Int=0
-    matriz.forEach{
-        if(it.contains(element)){
-            x=matriz.indexOf(it)
-            y=it.indexOf(element)
-        }
+
+class nodo(padre_:nodo?,posicion_:Pair<Int, Int> ){
+    var distancia=0
+    var posicion =posicion_
+    var padre:nodo?=padre_
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as nodo
+        if (posicion != other.posicion) return false
+        return true
     }
-    return Pair(x,y)
+    override fun hashCode(): Int {
+        return posicion.hashCode()
+    }
+
 }
+
