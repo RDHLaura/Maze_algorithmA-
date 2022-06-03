@@ -1,4 +1,4 @@
 # Maze_algorithmA-
 
-![https://ibb.co/kJSSd0w](https://i.ibb.co/ypQQ35Z/ezgif-com-gif-maker.gif)
+![maze](https://github.com/RDHLaura/Maze_algorithmA-/blob/9e77dcc6d6220535738be84d21d0395facc2b99e/ezgif.com-gif-maker.gif)
 
