@@ -1,3 +1,3 @@
 # Maze_algorithmA-
 
-![gif del laberinto creado en blender](https://ibb.co/kJSSd0w](https://ibb.co/kJSSd0w)
+![gif del laberinto creado en blender](https://ibb.co/kJSSd0w)
